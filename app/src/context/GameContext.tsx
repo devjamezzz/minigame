@@ -28,6 +28,7 @@ interface GameState {
   lastRewardId: string | null
   campaign: BootstrapResponse['campaign']
   lineConfig: BootstrapResponse['line']
+  rewardTemplates: BootstrapResponse['rewardTemplates']
   line: LineSession | null
   isReady: boolean
   isSubmitting: boolean
@@ -78,6 +79,7 @@ const initialState = (tracking: TrackingParams): GameState => ({
     liffRequired: false,
     lineAuthConfigured: false,
   },
+  rewardTemplates: [],
   line: null,
   isReady: false,
   isSubmitting: false,
@@ -121,6 +123,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
             ...prev,
             campaign: bootstrap.campaign,
             lineConfig: bootstrap.line,
+            rewardTemplates: bootstrap.rewardTemplates,
             line,
             isReady: true,
             error: line.error,

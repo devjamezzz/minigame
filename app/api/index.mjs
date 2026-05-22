@@ -2,6 +2,7 @@ import './_lib/bootstrap.mjs'
 import { pharmacyProfile } from '../server/campaign.mjs'
 import {
   adminSummary,
+  availableRewardTemplates,
   createRewardTemplate,
   getWallet,
   getWalletByLineAccessToken,
@@ -49,6 +50,7 @@ export default async function handler(req, res) {
       await recordEvent({ type: 'scan', tracking: body.tracking, metadata: { userAgent: req.headers['user-agent'] } })
       return sendJson(res, 200, {
         campaign: pharmacyProfile,
+        rewardTemplates: await availableRewardTemplates(),
         line: {
           liffRequired: process.env.REQUIRE_LINE_AUTH === 'true',
           lineAuthConfigured: Boolean(process.env.LINE_LOGIN_CHANNEL_ID),

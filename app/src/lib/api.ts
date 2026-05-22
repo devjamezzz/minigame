@@ -27,6 +27,7 @@ export interface BootstrapResponse {
     liffRequired: boolean
     lineAuthConfigured: boolean
   }
+  rewardTemplates: AdminRewardTemplate[]
 }
 
 export interface AdminSummary {

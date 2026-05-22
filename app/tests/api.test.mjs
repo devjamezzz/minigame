@@ -48,9 +48,10 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
 
   try {
     await waitForHealth(baseUrl)
-    await post(baseUrl, '/api/bootstrap', {
+    const initialBootstrap = await post(baseUrl, '/api/bootstrap', {
       tracking: { branch: 'สีลม', qrId: 'front01' },
     })
+    assert.equal(initialBootstrap.rewardTemplates.length > 0, true)
 
     const registered = await post(baseUrl, '/api/customers/register', {
       profile: {
@@ -137,6 +138,12 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
     assert.equal(createdReward.rewardTemplate.weight, 12)
     assert.equal(createdReward.rewardTemplate.stock_remaining, 12)
     assert.equal(createdReward.summary.rewardTemplates.some((item) => item.id === createdReward.rewardTemplate.id), true)
+
+    const updatedBootstrap = await post(baseUrl, '/api/bootstrap', {
+      tracking: { branch: 'test', qrId: 'front01' },
+    })
+    assert.equal(updatedBootstrap.rewardTemplates.some((item) => item.id === createdReward.rewardTemplate.id), true)
+    assert.equal(updatedBootstrap.rewardTemplates.some((item) => item.id === 'protinex-energy-cup'), false)
   } finally {
     server.kill('SIGINT')
     await Promise.race([

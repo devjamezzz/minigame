@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import {
   adminSummary,
+  availableRewardTemplates,
   createRewardTemplate,
   getWallet,
   getWalletByLineAccessToken,
@@ -65,6 +66,7 @@ const routeApi = async (req, res, url) => {
     await recordEvent({ type: 'scan', tracking: body.tracking, metadata: { userAgent: req.headers['user-agent'] } })
     return send(res, 200, {
       campaign: pharmacyProfile,
+      rewardTemplates: await availableRewardTemplates(),
       line: {
         liffRequired: process.env.REQUIRE_LINE_AUTH === 'true',
         lineAuthConfigured: Boolean(process.env.LINE_LOGIN_CHANNEL_ID),

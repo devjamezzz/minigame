@@ -95,6 +95,10 @@ const toAdminRewardTemplate = (row) => ({
   active: Boolean(row.active),
 })
 
+const configuredRewardTemplateIds = new Set(rewardTemplates.map((template) => template.id))
+const isVisibleRewardTemplate = (template) =>
+  configuredRewardTemplateIds.has(template.id) || String(template.id).startsWith('custom-')
+
 const toAdminParticipant = (row) => ({
   id: row.id,
   name: row.name,
@@ -1114,9 +1118,24 @@ export const updateRewardTemplate = async ({ id, updates }) => {
   return toAdminRewardTemplate(updated)
 }
 
+export const availableRewardTemplates = async () => {
+  if (usePostgres) {
+    const templates = await sql`
+      SELECT * FROM reward_templates
+      WHERE active = TRUE AND stock_remaining > 0
+      ORDER BY weight DESC
+    `
+    return templates.filter(isVisibleRewardTemplate).map(toAdminRewardTemplate)
+  }
+
+  return sqliteDb
+    .prepare('SELECT * FROM reward_templates WHERE active = 1 AND stock_remaining > 0 ORDER BY weight DESC')
+    .all()
+    .filter(isVisibleRewardTemplate)
+    .map(toAdminRewardTemplate)
+}
+
 export const adminSummary = async () => {
-  const configuredTemplateIds = new Set(rewardTemplates.map((template) => template.id))
-  const isVisibleTemplate = (template) => configuredTemplateIds.has(template.id) || String(template.id).startsWith('custom-')
   if (usePostgres) {
     const eventRows = await sql`SELECT type, count(*)::int as total FROM campaign_events GROUP BY type`
     const events = Object.fromEntries(eventRows.map((row) => [row.type, row.total]))
@@ -1126,7 +1145,7 @@ export const adminSummary = async () => {
       GROUP BY source
       ORDER BY total DESC
     `
-    const templates = (await sql`SELECT * FROM reward_templates ORDER BY weight DESC`).filter(isVisibleTemplate)
+    const templates = (await sql`SELECT * FROM reward_templates ORDER BY weight DESC`).filter(isVisibleRewardTemplate)
     const participants = await sql`
       SELECT
         c.id,
@@ -1178,7 +1197,7 @@ export const adminSummary = async () => {
       ORDER BY total DESC
     `)
     .all()
-  const templates = sqliteDb.prepare('SELECT * FROM reward_templates ORDER BY weight DESC').all().filter(isVisibleTemplate)
+  const templates = sqliteDb.prepare('SELECT * FROM reward_templates ORDER BY weight DESC').all().filter(isVisibleRewardTemplate)
   const participants = sqliteDb
     .prepare(`
       SELECT
