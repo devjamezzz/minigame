@@ -65,67 +65,6 @@ export const pharmacyProfile = {
     'แอด LINE @clinicya เพื่อเก็บสิทธิ์ของรางวัลไว้ใน Wallet และรับข่าวสารจาก CNY HEALTHCARE',
 }
 
-const productGiftTerms =
-  'แสดงหน้ารางวัลให้พนักงานตรวจสอบและรับสินค้าที่จุดกิจกรรม ของรางวัลมีจำนวนจำกัด ไม่สามารถแลกเปลี่ยนเป็นเงินสดได้'
-
-export const rewardTemplates: RewardTemplate[] = [
-  {
-    id: 'protinex-energy-cup',
-    tier: 'yellow',
-    name: 'Protinex Energy Cup',
-    description: 'ของรางวัลสำหรับผู้ร่วมกิจกรรม CNY HEALTHCARE',
-    amount: 0,
-    weight: 86,
-    stock: 86,
-    image: '/item-gift-box.png',
-    terms: productGiftTerms,
-  },
-  {
-    id: 'orange-boost-cup',
-    tier: 'purple',
-    name: 'Orange Boost Cup',
-    description: 'ของรางวัลสำหรับผู้ร่วมกิจกรรม CNY HEALTHCARE',
-    amount: 0,
-    weight: 56,
-    stock: 56,
-    image: '/item-gift-box.png',
-    terms: productGiftTerms,
-  },
-  {
-    id: 'eco-style-bag',
-    tier: 'green',
-    name: 'Eco Style Bag',
-    description: 'ของรางวัลสำหรับผู้ร่วมกิจกรรม CNY HEALTHCARE',
-    amount: 0,
-    weight: 36,
-    stock: 36,
-    image: '/item-gift-box.png',
-    terms: productGiftTerms,
-  },
-  {
-    id: 'daily-smart-pen',
-    tier: 'blue',
-    name: 'Daily Smart Pen',
-    description: 'ของรางวัลสำหรับผู้ร่วมกิจกรรม CNY HEALTHCARE',
-    amount: 0,
-    weight: 150,
-    stock: 150,
-    image: '/item-gift-box.png',
-    terms: productGiftTerms,
-  },
-  {
-    id: 'natural-daily-bag',
-    tier: 'pink',
-    name: 'Natural Daily Bag',
-    description: 'ของรางวัลสำหรับผู้ร่วมกิจกรรม CNY HEALTHCARE',
-    amount: 0,
-    weight: 179,
-    stock: 179,
-    image: '/item-gift-box.png',
-    terms: productGiftTerms,
-  },
-]
-
 export const visitReasonOptions = ['ลูกค้าใหม่']
 
 export function normalizeThaiPhone(input: string) {
@@ -138,21 +77,6 @@ export function normalizeThaiPhone(input: string) {
 
 export function isValidThaiMobile(input: string) {
   return /^0[689]\d{8}$/.test(normalizeThaiPhone(input))
-}
-
-export function selectRewardTemplate(randomValue = Math.random()) {
-  const availableTemplates = rewardTemplates.filter((item) => item.stock > 0 && item.weight > 0)
-  const totalWeight = availableTemplates.reduce((sum, item) => sum + item.stock, 0)
-  const safeRandom = Math.min(Math.max(randomValue, 0), 0.999999)
-  const threshold = safeRandom * totalWeight
-  let cursor = 0
-
-  for (const template of availableTemplates) {
-    cursor += template.stock
-    if (threshold < cursor) return template
-  }
-
-  return availableTemplates[availableTemplates.length - 1]
 }
 
 export function createReward(
@@ -179,10 +103,6 @@ export function createReward(
     image: template.image,
     issuedAt: now.toISOString(),
   }
-}
-
-export function drawReward(type: RewardKind = 'main', sequence = 1, randomValue = Math.random()) {
-  return createReward(selectRewardTemplate(randomValue), type, new Date(), sequence)
 }
 
 export function formatBaht(amount: number) {

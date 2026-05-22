@@ -3,7 +3,6 @@ import { existsSync, mkdirSync } from 'node:fs'
 import path from 'node:path'
 import { DatabaseSync } from 'node:sqlite'
 import { neon } from '@neondatabase/serverless'
-import { rewardTemplates } from './campaign.mjs'
 
 const usePostgres = Boolean(process.env.DATABASE_URL)
 const dbPath = process.env.DATABASE_PATH ?? path.resolve('data/campaign.sqlite')
@@ -95,9 +94,7 @@ const toAdminRewardTemplate = (row) => ({
   active: Boolean(row.active),
 })
 
-const configuredRewardTemplateIds = new Set(rewardTemplates.map((template) => template.id))
-const isVisibleRewardTemplate = (template) =>
-  configuredRewardTemplateIds.has(template.id) || String(template.id).startsWith('custom-')
+const isAdminRewardTemplate = (template) => String(template.id).startsWith('custom-')
 
 const toAdminParticipant = (row) => ({
   id: row.id,
@@ -185,35 +182,7 @@ const migrateSqlite = () => {
     );
   `)
 
-  const insertTemplate = sqliteDb.prepare(`
-    INSERT INTO reward_templates (
-      id, tier, name, description, amount, weight, stock_remaining, image, terms, active
-    )
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 1)
-    ON CONFLICT(id) DO NOTHING
-  `)
-
-  for (const template of rewardTemplates) {
-    insertTemplate.run(
-      template.id,
-      template.tier,
-      template.name,
-      template.description,
-      template.amount,
-      template.weight,
-      template.stock,
-      template.image,
-      template.terms,
-    )
-  }
-
-  const activeTemplateIds = rewardTemplates.map((template) => template.id)
-  if (activeTemplateIds.length > 0) {
-    const placeholders = activeTemplateIds.map(() => '?').join(', ')
-    sqliteDb
-      .prepare(`UPDATE reward_templates SET active = 0 WHERE id NOT IN (${placeholders}) AND id NOT LIKE 'custom-%'`)
-      .run(...activeTemplateIds)
-  }
+  sqliteDb.prepare("UPDATE reward_templates SET active = 0 WHERE id NOT LIKE 'custom-%'").run()
 }
 
 const migratePostgres = async () => {
@@ -288,31 +257,7 @@ const migratePostgres = async () => {
     )
   `
 
-  for (const template of rewardTemplates) {
-    await sql`
-      INSERT INTO reward_templates (
-        id, tier, name, description, amount, weight, stock_remaining, image, terms, active
-      )
-      VALUES (
-        ${template.id},
-        ${template.tier},
-        ${template.name},
-        ${template.description},
-        ${template.amount},
-        ${template.weight},
-        ${template.stock},
-        ${template.image},
-        ${template.terms},
-          TRUE
-      )
-      ON CONFLICT (id) DO NOTHING
-    `
-  }
-
-  const activeTemplateIds = rewardTemplates.map((template) => template.id)
-  if (activeTemplateIds.length > 0) {
-    await sql`UPDATE reward_templates SET active = FALSE WHERE NOT (id = ANY(${activeTemplateIds})) AND id NOT LIKE 'custom-%'`
-  }
+  await sql`UPDATE reward_templates SET active = FALSE WHERE id NOT LIKE 'custom-%'`
 }
 
 export const migrate = async () => {
@@ -654,7 +599,7 @@ export const issueReward = async ({ customerId, type, tracking }) => {
     if (existing) return toReward(existing)
 
     let templates = await sql`
-      SELECT * FROM reward_templates WHERE active = TRUE AND stock_remaining > 0
+      SELECT * FROM reward_templates WHERE id LIKE 'custom-%' AND active = TRUE AND stock_remaining > 0
     `
     if (templates.length === 0) throw Object.assign(new Error('รางวัลหมดแล้ว'), { status: 409 })
 
@@ -721,7 +666,7 @@ export const issueReward = async ({ customerId, type, tracking }) => {
     }
 
     const templates = sqliteDb
-      .prepare('SELECT * FROM reward_templates WHERE active = 1 AND stock_remaining > 0')
+      .prepare("SELECT * FROM reward_templates WHERE id LIKE 'custom-%' AND active = 1 AND stock_remaining > 0")
       .all()
     if (templates.length === 0) throw Object.assign(new Error('รางวัลหมดแล้ว'), { status: 409 })
 
@@ -954,9 +899,8 @@ const cleanRewardTemplatePatch = (input = {}) => {
 
 const defaultRewardDescription = 'ของรางวัลสำหรับผู้ร่วมกิจกรรม CNY HEALTHCARE'
 const defaultRewardTerms =
-  rewardTemplates[0]?.terms ??
   'แสดงหน้ารางวัลให้พนักงานตรวจสอบและรับสินค้าที่จุดกิจกรรม ของรางวัลมีจำนวนจำกัด ไม่สามารถแลกเปลี่ยนเป็นเงินสดได้'
-const defaultRewardImage = rewardTemplates[0]?.image ?? '/item-gift-box.png'
+const defaultRewardImage = '/item-gift-box.png'
 
 const slugifyRewardName = (name) => {
   const slug = String(name)
@@ -1125,13 +1069,13 @@ export const availableRewardTemplates = async () => {
       WHERE active = TRUE AND stock_remaining > 0
       ORDER BY weight DESC
     `
-    return templates.filter(isVisibleRewardTemplate).map(toAdminRewardTemplate)
+    return templates.filter(isAdminRewardTemplate).map(toAdminRewardTemplate)
   }
 
   return sqliteDb
     .prepare('SELECT * FROM reward_templates WHERE active = 1 AND stock_remaining > 0 ORDER BY weight DESC')
     .all()
-    .filter(isVisibleRewardTemplate)
+    .filter(isAdminRewardTemplate)
     .map(toAdminRewardTemplate)
 }
 
@@ -1145,7 +1089,7 @@ export const adminSummary = async () => {
       GROUP BY source
       ORDER BY total DESC
     `
-    const templates = (await sql`SELECT * FROM reward_templates ORDER BY weight DESC`).filter(isVisibleRewardTemplate)
+    const templates = (await sql`SELECT * FROM reward_templates ORDER BY weight DESC`).filter(isAdminRewardTemplate)
     const participants = await sql`
       SELECT
         c.id,
@@ -1197,7 +1141,7 @@ export const adminSummary = async () => {
       ORDER BY total DESC
     `)
     .all()
-  const templates = sqliteDb.prepare('SELECT * FROM reward_templates ORDER BY weight DESC').all().filter(isVisibleRewardTemplate)
+  const templates = sqliteDb.prepare('SELECT * FROM reward_templates ORDER BY weight DESC').all().filter(isAdminRewardTemplate)
   const participants = sqliteDb
     .prepare(`
       SELECT

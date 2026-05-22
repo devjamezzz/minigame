@@ -30,6 +30,9 @@ test('returns the existing wallet when the same LINE user registers again', asyn
     databaseUrl.search = `?case=${Date.now()}`
     const database = await import(databaseUrl.href)
     await database.migrate()
+    const configuredReward = await database.createRewardTemplate({
+      template: { name: 'LINE Returning Gift', stock_remaining: 9, active: true },
+    })
 
     const firstCustomer = await database.registerCustomer({
       profile: {
@@ -68,15 +71,15 @@ test('returns the existing wallet when the same LINE user registers again', asyn
     assert.equal(lookedUpWallet.customer.phone, '0812345678')
 
     await database.updateRewardTemplate({
-      id: 'protinex-energy-cup',
+      id: configuredReward.id,
       updates: { stock_remaining: 9, active: false },
     })
     await database.migrate()
     const summary = await database.adminSummary()
-    const configuredReward = summary.rewardTemplates.find((item) => item.id === 'protinex-energy-cup')
-    assert.equal(configuredReward.weight, 9)
-    assert.equal(configuredReward.stock_remaining, 9)
-    assert.equal(configuredReward.active, false)
+    const migratedReward = summary.rewardTemplates.find((item) => item.id === configuredReward.id)
+    assert.equal(migratedReward.weight, 9)
+    assert.equal(migratedReward.stock_remaining, 9)
+    assert.equal(migratedReward.active, false)
   } finally {
     process.env.DATABASE_PATH = previousDatabasePath
     process.env.REQUIRE_LINE_AUTH = previousRequireLineAuth

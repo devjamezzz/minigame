@@ -51,7 +51,13 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
     const initialBootstrap = await post(baseUrl, '/api/bootstrap', {
       tracking: { branch: 'สีลม', qrId: 'front01' },
     })
-    assert.equal(initialBootstrap.rewardTemplates.length > 0, true)
+    assert.equal(initialBootstrap.rewardTemplates.length, 0)
+
+    const starterReward = await post(baseUrl, '/api/admin/reward-templates', {
+      name: 'Starter Gift',
+      stock_remaining: 20,
+      active: true,
+    })
 
     const registered = await post(baseUrl, '/api/customers/register', {
       profile: {
@@ -77,7 +83,7 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
 
     assert.equal(firstDraw.reward.id, duplicateDraw.reward.id)
     assert.equal(typeof firstDraw.reward.id, 'string')
-    assert.match(firstDraw.reward.name, /Cup|Bag|Pen/)
+    assert.equal(firstDraw.reward.name, 'Starter Gift')
 
     const removedBonus = await fetch(`${baseUrl}/api/rewards/share-bonus`, {
       method: 'POST',
@@ -115,11 +121,14 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
     assert.equal(summary.participants[0].mainRewardId, firstDraw.reward.id)
     assert.equal(summary.participants[0].mainRewardStatus, 'used')
 
-    const rewardUpdateResponse = await fetch(`${baseUrl}/api/admin/reward-templates/protinex-energy-cup`, {
+    const rewardUpdateResponse = await fetch(
+      `${baseUrl}/api/admin/reward-templates/${encodeURIComponent(starterReward.rewardTemplate.id)}`,
+      {
       method: 'PATCH',
       headers: { 'content-type': 'application/json' },
       body: JSON.stringify({ stock_remaining: 88, active: false }),
-    })
+      },
+    )
     const rewardUpdate = await rewardUpdateResponse.json()
     assert.equal(rewardUpdateResponse.ok, true, rewardUpdate.message)
     assert.equal(rewardUpdate.rewardTemplate.weight, 88)
@@ -143,7 +152,7 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
       tracking: { branch: 'test', qrId: 'front01' },
     })
     assert.equal(updatedBootstrap.rewardTemplates.some((item) => item.id === createdReward.rewardTemplate.id), true)
-    assert.equal(updatedBootstrap.rewardTemplates.some((item) => item.id === 'protinex-energy-cup'), false)
+    assert.equal(updatedBootstrap.rewardTemplates.some((item) => item.id === starterReward.rewardTemplate.id), false)
   } finally {
     server.kill('SIGINT')
     await Promise.race([

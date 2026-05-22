@@ -14,7 +14,6 @@ import {
   Ticket,
   X,
 } from 'lucide-react'
-import { rewardTemplates as fallbackRewardTemplates } from '../lib/campaign'
 import { useGame } from '../context/GameContext'
 import { getLiffEntryUrl } from '../lib/lineLiff'
 import { gameAssets } from '../lib/gameAssets'
@@ -38,7 +37,6 @@ export default function LandingPage() {
   const requiresLine = state.lineConfig.liffRequired
   const hasLineSession = Boolean(state.line?.accessToken)
   const canStartCampaign = !requiresLine || hasLineSession
-  const availableRewardTemplates = state.rewardTemplates.length ? state.rewardTemplates : fallbackRewardTemplates
 
   const steps = useMemo(
     () => [
@@ -270,7 +268,7 @@ export default function LandingPage() {
             <div className="mb-5">
               <p className="mb-2 text-sm font-semibold text-ink-dark">รางวัลตัวอย่าง</p>
               <div className="grid grid-cols-3 gap-2">
-                {availableRewardTemplates.slice(0, 3).map((reward) => (
+                {state.rewardTemplates.slice(0, 3).map((reward) => (
                   <div
                     key={reward.id}
                     className="rounded-[12px] border border-paper-line bg-white p-3 text-left"
