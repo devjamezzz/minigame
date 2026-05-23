@@ -60,6 +60,9 @@ const explainFriendshipError = (error: unknown) => {
 }
 
 export const getLiffEntryUrl = () => (liffId ? `https://liff.line.me/${liffId}` : null)
+export const isLineInAppBrowser = () =>
+  typeof navigator !== 'undefined' && /\bLine\//i.test(navigator.userAgent)
+
 export const getLineOfficialAccountUrl = () => {
   const oaId = import.meta.env.VITE_LINE_OA_ID || '@clinicya'
   return `https://line.me/R/ti/p/${encodeURIComponent(oaId)}`
@@ -80,11 +83,14 @@ export const initializeLine = async (): Promise<LineSession> => {
   try {
     const liff = await withTimeout(loadLiff(), 'LIFF SDK load timed out')
     await withTimeout(liff.init({ liffId }), 'LIFF init timed out')
+    const inClient = liff.isInClient()
     if (!liff.isLoggedIn()) {
-      liff.login()
+      if (!inClient) {
+        liff.login({ redirectUri: window.location.href })
+      }
       return {
         configured: true,
-        inClient: liff.isInClient(),
+        inClient,
         profile: null,
         accessToken: null,
         friendFlag: null,
@@ -95,7 +101,7 @@ export const initializeLine = async (): Promise<LineSession> => {
     const profile = await liff.getProfile()
     return {
       configured: true,
-      inClient: liff.isInClient(),
+      inClient,
       profile: {
         userId: profile.userId,
         displayName: profile.displayName,

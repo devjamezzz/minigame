@@ -11,6 +11,7 @@ type FullscreenElement = HTMLElement & {
 
 function isFullscreenSupported(): boolean {
   if (typeof document === 'undefined') return false
+  if (typeof navigator !== 'undefined' && /\bLine\//i.test(navigator.userAgent)) return false
   const doc = document as FullscreenDoc
   const el = document.documentElement as FullscreenElement
   return Boolean(el.requestFullscreen ?? el.webkitRequestFullscreen) && Boolean(doc.exitFullscreen ?? doc.webkitExitFullscreen)
