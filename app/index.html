@@ -18,6 +18,83 @@
     <meta name="format-detection" content="telephone=no" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <title>สิทธิพิเศษจาก CNY HEALTHCARE | @clinicya</title>
+    <script>
+      ;(function () {
+        var retryKey = 'cny-liff-first-load-retry'
+        var isLineClient = /\bLine\//i.test(navigator.userAgent)
+        var url = new URL(window.location.href)
+        var openedFromLiff = url.searchParams.has('liff.state')
+
+        if (openedFromLiff && !window.location.hash.startsWith('#/')) {
+          var state = url.searchParams.get('liff.state') || ''
+          try {
+            state = decodeURIComponent(state)
+          } catch (error) {
+            // Some LINE WebViews already decode liff.state.
+          }
+
+          if (/^https?:\/\//i.test(state)) {
+            var stateUrl = new URL(state)
+            state = stateUrl.pathname + stateUrl.search + stateUrl.hash
+          }
+
+          var remainingParams = new URLSearchParams(url.search)
+          remainingParams.delete('liff.state')
+          remainingParams.delete('liff.referrer')
+
+          var route = state.startsWith('#/')
+            ? state
+            : state.startsWith('/#/')
+              ? state.slice(1)
+              : state.startsWith('/')
+                ? '#' + state
+                : state.startsWith('?')
+                  ? '#/' + state
+                  : '#/'
+
+          var search = remainingParams.toString()
+          window.history.replaceState(
+            null,
+            '',
+            url.pathname + (search ? '?' + search : '') + route
+          )
+        }
+
+        if (!isLineClient && !openedFromLiff) return
+
+        var storage = {
+          get: function () {
+            try {
+              return window.sessionStorage.getItem(retryKey)
+            } catch (error) {
+              return null
+            }
+          },
+          set: function () {
+            try {
+              window.sessionStorage.setItem(retryKey, '1')
+            } catch (error) {
+              // Storage can be restricted in embedded browsers.
+            }
+          },
+        }
+
+        var appMounted = function () {
+          var root = document.getElementById('root')
+          return Boolean(root && root.children.length && document.querySelector('.game-frame'))
+        }
+
+        var reloadOnceIfBlank = function () {
+          if (appMounted() || storage.get() === '1') return
+          storage.set()
+          window.location.replace(window.location.href)
+        }
+
+        window.addEventListener('error', function () { window.setTimeout(reloadOnceIfBlank, 250) })
+        window.addEventListener('unhandledrejection', function () { window.setTimeout(reloadOnceIfBlank, 250) })
+        window.setTimeout(reloadOnceIfBlank, 3500)
+      })()
+    </script>
   </head>
   <body>
     <div id="root"></div>
