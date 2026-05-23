@@ -37,6 +37,16 @@ export interface AdminSummary {
   participants: AdminParticipant[]
 }
 
+export interface ResetPlayerHistoryResponse {
+  deleted: {
+    customers: number
+    rewards: number
+    friendships: number
+    events: number
+  }
+  summary: AdminSummary
+}
+
 export interface AdminRewardTemplate {
   id: string
   tier: string
@@ -143,6 +153,14 @@ export const redeemAdminReward = (rewardId: string, adminKey?: string) => {
 export const fetchAdminSummary = (adminKey?: string) => {
   const query = adminKey ? `?key=${encodeURIComponent(adminKey)}` : ''
   return request<AdminSummary>(`/admin/summary${query}`)
+}
+
+export const resetPlayerHistory = (adminKey?: string) => {
+  const query = adminKey ? `?key=${encodeURIComponent(adminKey)}` : ''
+  return request<ResetPlayerHistoryResponse>(`/admin/player-history/reset${query}`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  })
 }
 
 export const createAdminRewardTemplate = (

@@ -153,6 +153,18 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
     })
     assert.equal(updatedBootstrap.rewardTemplates.some((item) => item.id === createdReward.rewardTemplate.id), true)
     assert.equal(updatedBootstrap.rewardTemplates.some((item) => item.id === starterReward.rewardTemplate.id), false)
+
+    const resetResponse = await post(baseUrl, '/api/admin/player-history/reset', {})
+    assert.equal(resetResponse.deleted.customers, 1)
+    assert.equal(resetResponse.deleted.rewards, 1)
+    assert.equal(resetResponse.deleted.friendships, 1)
+    assert.equal(resetResponse.deleted.events >= 5, true)
+    assert.deepEqual(resetResponse.summary.participants, [])
+    assert.deepEqual(resetResponse.summary.events, {})
+    assert.equal(
+      resetResponse.summary.rewardTemplates.some((item) => item.id === createdReward.rewardTemplate.id),
+      true,
+    )
   } finally {
     server.kill('SIGINT')
     await Promise.race([

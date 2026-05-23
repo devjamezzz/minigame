@@ -1173,6 +1173,57 @@ export const adminSummary = async () => {
   }
 }
 
+export const resetPlayerHistory = async () => {
+  if (usePostgres) {
+    const before = (await sql`
+      SELECT
+        (SELECT count(*)::int FROM customers) AS customers,
+        (SELECT count(*)::int FROM rewards) AS rewards,
+        (SELECT count(*)::int FROM friendships) AS friendships,
+        (SELECT count(*)::int FROM campaign_events) AS events
+    `)[0]
+
+    await sql`DELETE FROM friendships`
+    await sql`DELETE FROM rewards`
+    await sql`DELETE FROM campaign_events`
+    await sql`DELETE FROM customers`
+
+    return {
+      deleted: {
+        customers: Number(before.customers ?? 0),
+        rewards: Number(before.rewards ?? 0),
+        friendships: Number(before.friendships ?? 0),
+        events: Number(before.events ?? 0),
+      },
+      summary: await adminSummary(),
+    }
+  }
+
+  const before = {
+    customers: Number(sqliteDb.prepare('SELECT count(*) AS total FROM customers').get().total ?? 0),
+    rewards: Number(sqliteDb.prepare('SELECT count(*) AS total FROM rewards').get().total ?? 0),
+    friendships: Number(sqliteDb.prepare('SELECT count(*) AS total FROM friendships').get().total ?? 0),
+    events: Number(sqliteDb.prepare('SELECT count(*) AS total FROM campaign_events').get().total ?? 0),
+  }
+
+  sqliteDb.exec('BEGIN')
+  try {
+    sqliteDb.prepare('DELETE FROM friendships').run()
+    sqliteDb.prepare('DELETE FROM rewards').run()
+    sqliteDb.prepare('DELETE FROM campaign_events').run()
+    sqliteDb.prepare('DELETE FROM customers').run()
+    sqliteDb.exec('COMMIT')
+  } catch (error) {
+    sqliteDb.exec('ROLLBACK')
+    throw error
+  }
+
+  return {
+    deleted: before,
+    summary: await adminSummary(),
+  }
+}
+
 export const pingDatabase = async () => {
   if (usePostgres) {
     const rows = await sql`SELECT 1 AS ok`

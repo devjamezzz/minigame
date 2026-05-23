@@ -11,6 +11,7 @@ import {
   recordEvent,
   redeemReward,
   registerCustomer,
+  resetPlayerHistory,
   updateRewardTemplate,
   verifyFriendship,
 } from '../server/database.mjs'
@@ -100,6 +101,13 @@ export default async function handler(req, res) {
       if (!ensureMethod(req, res, 'GET')) return
       requireAdmin()
       return sendJson(res, 200, await adminSummary())
+    }
+
+    if (route === '/admin/player-history/reset') {
+      if (!ensureMethod(req, res, 'POST')) return
+      const body = await readJson(req)
+      requireAdmin(body)
+      return sendJson(res, 200, await resetPlayerHistory())
     }
 
     if (route === '/admin/rewards/redeem') {

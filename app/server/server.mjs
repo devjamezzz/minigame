@@ -14,6 +14,7 @@ import {
   recordEvent,
   redeemReward,
   registerCustomer,
+  resetPlayerHistory,
   updateRewardTemplate,
   verifyFriendship,
 } from './database.mjs'
@@ -116,6 +117,13 @@ const routeApi = async (req, res, url) => {
     if (req.method !== 'GET') return methodNotAllowed(res)
     requireAdmin(url)
     return send(res, 200, await adminSummary())
+  }
+
+  if (url.pathname === '/api/admin/player-history/reset') {
+    if (req.method !== 'POST') return methodNotAllowed(res)
+    const body = await readBody(req)
+    requireAdmin(url, body)
+    return send(res, 200, await resetPlayerHistory())
   }
 
   if (url.pathname === '/api/admin/rewards/redeem') {

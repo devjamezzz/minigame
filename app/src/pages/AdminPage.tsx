@@ -11,6 +11,7 @@ import {
   RefreshCw,
   Save,
   Search,
+  Trash2,
   TicketCheck,
   Users,
   XCircle,
@@ -21,6 +22,7 @@ import {
   createAdminRewardTemplate,
   fetchAdminSummary,
   redeemAdminReward,
+  resetPlayerHistory,
   updateAdminRewardTemplate,
   type AdminParticipant,
   type AdminRewardTemplate,
@@ -71,6 +73,7 @@ export default function AdminPage() {
   const [savingId, setSavingId] = useState<string | null>(null)
   const [isCreatingReward, setIsCreatingReward] = useState(false)
   const [redeemingId, setRedeemingId] = useState<string | null>(null)
+  const [isResettingHistory, setIsResettingHistory] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [notice, setNotice] = useState<string | null>(null)
   const [newReward, setNewReward] = useState({
@@ -240,6 +243,29 @@ export default function AdminPage() {
     }
   }
 
+  const resetHistory = async () => {
+    const confirmed = window.confirm(
+      'ล้างประวัติผู้เล่นทั้งหมด? ระบบจะลบผู้เล่น คูปองที่เคยออก ประวัติแอด LINE และสถิติการเล่น แต่ไม่ลบรายการของรางวัลที่แอดมินตั้งไว้',
+    )
+    if (!confirmed) return
+
+    setIsResettingHistory(true)
+    setError(null)
+    setNotice(null)
+    try {
+      const response = await resetPlayerHistory(adminKey.trim() || undefined)
+      setSummary(response.summary)
+      setDrafts(Object.fromEntries(response.summary.rewardTemplates.map((reward) => [reward.id, { ...reward }])))
+      setNotice(
+        `ล้างประวัติผู้เล่นแล้ว: ผู้เล่น ${response.deleted.customers} ราย, คูปอง ${response.deleted.rewards} ใบ, อีเวนต์ ${response.deleted.events} รายการ`,
+      )
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'ล้างประวัติผู้เล่นไม่สำเร็จ')
+    } finally {
+      setIsResettingHistory(false)
+    }
+  }
+
   return (
     <div className="min-h-[100dvh] bg-parchment px-5 py-5 text-ink-dark">
       <div className="mx-auto max-w-6xl">
@@ -281,6 +307,15 @@ export default function AdminPage() {
                 <RefreshCw size={18} />
               </button>
             </div>
+            <button
+              type="button"
+              onClick={() => void resetHistory()}
+              disabled={isResettingHistory || isLoading}
+              className="mt-3 flex min-h-11 w-full items-center justify-center gap-2 rounded-[8px] border border-alert-coral/45 bg-alert-coral/15 px-4 py-2 text-sm font-semibold text-white transition active:scale-[0.98] disabled:opacity-60"
+            >
+              <Trash2 size={16} />
+              {isResettingHistory ? 'กำลังล้างประวัติ...' : 'ล้างประวัติผู้เล่น'}
+            </button>
           </form>
         </section>
 
