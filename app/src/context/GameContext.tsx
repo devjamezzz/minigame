@@ -102,14 +102,28 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
     const boot = async () => {
       try {
-        const [bootstrap, line] = await Promise.all([
-          bootstrapCampaign(tracking),
-          initializeLine(),
-        ])
+        const bootstrap = await bootstrapCampaign(tracking)
         if (cancelled) return
 
         const customerId = window.sessionStorage.getItem(SESSION_CUSTOMER_ID)
         let wallet = customerId ? await fetchWallet(customerId).catch(() => null) : null
+        if (cancelled) return
+
+        setState((prev) => {
+          const next = {
+            ...prev,
+            campaign: bootstrap.campaign,
+            lineConfig: bootstrap.line,
+            rewardTemplates: bootstrap.rewardTemplates,
+            isReady: true,
+            error: null,
+          }
+          return wallet ? applyWallet(next, wallet) : next
+        })
+
+        const line = await initializeLine()
+        if (cancelled) return
+
         if (!wallet && line?.accessToken) {
           wallet = (await lookupCustomerByLine(line.accessToken).catch(() => null))?.wallet ?? null
           if (wallet?.customer.id) {
@@ -121,11 +135,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
         setState((prev) => {
           const next = {
             ...prev,
-            campaign: bootstrap.campaign,
-            lineConfig: bootstrap.line,
-            rewardTemplates: bootstrap.rewardTemplates,
             line,
-            isReady: true,
             error: line.error,
           }
           return wallet ? applyWallet(next, wallet) : next

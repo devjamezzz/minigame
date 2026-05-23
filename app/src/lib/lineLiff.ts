@@ -1,4 +1,4 @@
-import liff from '@line/liff'
+import type liffRuntime from '@line/liff'
 
 export interface LineProfile {
   userId: string
@@ -15,11 +15,28 @@ export interface LineSession {
   error: string | null
 }
 
-type LiffWithRequestFriendship = typeof liff & {
+type LiffClient = typeof liffRuntime
+
+type LiffWithRequestFriendship = LiffClient & {
   requestFriendship?: () => Promise<unknown>
 }
 
 const liffId = import.meta.env.VITE_LIFF_ID as string | undefined
+const liffInitTimeoutMs = 8000
+let liffClientPromise: Promise<LiffClient> | null = null
+
+const loadLiff = async () => {
+  liffClientPromise ??= import('@line/liff').then((module) => module.default)
+  return liffClientPromise
+}
+
+const withTimeout = async <T,>(promise: Promise<T>, message: string): Promise<T> =>
+  Promise.race([
+    promise,
+    new Promise<T>((_, reject) => {
+      window.setTimeout(() => reject(new Error(message)), liffInitTimeoutMs)
+    }),
+  ])
 
 export const getDevLineTestSession = () =>
   import.meta.env.DEV
@@ -61,7 +78,8 @@ export const initializeLine = async (): Promise<LineSession> => {
   }
 
   try {
-    await liff.init({ liffId })
+    const liff = await withTimeout(loadLiff(), 'LIFF SDK load timed out')
+    await withTimeout(liff.init({ liffId }), 'LIFF init timed out')
     if (!liff.isLoggedIn()) {
       liff.login()
       return {
@@ -101,6 +119,7 @@ export const initializeLine = async (): Promise<LineSession> => {
 
 export const requestLineFriendship = async () => {
   if (!liffId) throw new Error('ยังไม่ได้ตั้งค่า VITE_LIFF_ID')
+  const liff = await loadLiff()
   const liffWithFriendship = liff as LiffWithRequestFriendship
 
   try {
@@ -134,7 +153,8 @@ export const verifyCurrentLineFriendship = async () => {
   if (!liffId) throw new Error('เธขเธฑเธเนเธกเนเนเธ”เนเธ•เธฑเนเธเธเนเธฒ VITE_LIFF_ID')
 
   try {
-    await liff.init({ liffId })
+    const liff = await loadLiff()
+    await withTimeout(liff.init({ liffId }), 'LIFF init timed out')
     if (!liff.isLoggedIn()) {
       liff.login()
       throw new Error('Please sign in with LINE before checking friendship')
@@ -153,7 +173,8 @@ export const openLineOfficialAccount = async () => {
   const url = getLineOfficialAccountUrl()
   try {
     if (liffId) {
-      await liff.init({ liffId })
+      const liff = await loadLiff()
+      await withTimeout(liff.init({ liffId }), 'LIFF init timed out')
       if (liff.isApiAvailable('openWindow')) {
         liff.openWindow({ url, external: false })
         return
