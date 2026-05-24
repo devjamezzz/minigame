@@ -21,9 +21,11 @@
     <script>
       ;(function () {
         var retryKey = 'cny-liff-first-load-retry'
+        var retryParam = 'cny_liff_retry'
         var isLineClient = /\bLine\//i.test(navigator.userAgent)
         var url = new URL(window.location.href)
         var openedFromLiff = url.searchParams.has('liff.state')
+        var alreadyRetried = url.searchParams.get(retryParam) === '1'
 
         if (openedFromLiff && !window.location.hash.startsWith('#/')) {
           var state = url.searchParams.get('liff.state') || ''
@@ -41,6 +43,7 @@
           var remainingParams = new URLSearchParams(url.search)
           remainingParams.delete('liff.state')
           remainingParams.delete('liff.referrer')
+          remainingParams.delete(retryParam)
 
           var route = state.startsWith('#/')
             ? state
@@ -57,6 +60,13 @@
             null,
             '',
             url.pathname + (search ? '?' + search : '') + route
+          )
+        } else if (alreadyRetried) {
+          url.searchParams.delete(retryParam)
+          window.history.replaceState(
+            null,
+            '',
+            url.pathname + (url.searchParams.toString() ? '?' + url.searchParams.toString() : '') + window.location.hash
           )
         }
 
@@ -79,20 +89,26 @@
           },
         }
 
+        alreadyRetried = alreadyRetried || storage.get() === '1'
+
         var appMounted = function () {
           var root = document.getElementById('root')
           return Boolean(root && root.children.length && document.querySelector('.game-frame'))
         }
 
         var reloadOnceIfBlank = function () {
-          if (appMounted() || storage.get() === '1') return
+          var root = document.getElementById('root')
+          if (appMounted() || alreadyRetried || document.readyState !== 'complete' || (root && root.children.length)) return
+          alreadyRetried = true
           storage.set()
-          window.location.replace(window.location.href)
+          var nextUrl = new URL(window.location.href)
+          nextUrl.searchParams.set(retryParam, '1')
+          window.location.replace(nextUrl.toString())
         }
 
-        window.addEventListener('error', function () { window.setTimeout(reloadOnceIfBlank, 250) })
-        window.addEventListener('unhandledrejection', function () { window.setTimeout(reloadOnceIfBlank, 250) })
-        window.setTimeout(reloadOnceIfBlank, 3500)
+        window.addEventListener('error', function () { window.setTimeout(reloadOnceIfBlank, 750) })
+        window.addEventListener('unhandledrejection', function () { window.setTimeout(reloadOnceIfBlank, 750) })
+        window.setTimeout(reloadOnceIfBlank, 8000)
       })()
     </script>
   </head>
