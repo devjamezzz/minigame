@@ -99,6 +99,13 @@ export const initializeLine = async (): Promise<LineSession> => {
     }
 
     const profile = await liff.getProfile()
+    let friendFlag: boolean | null = null
+    try {
+      friendFlag = (await liff.getFriendship()).friendFlag
+    } catch {
+      friendFlag = null
+    }
+
     return {
       configured: true,
       inClient,
@@ -108,7 +115,7 @@ export const initializeLine = async (): Promise<LineSession> => {
         pictureUrl: profile.pictureUrl,
       },
       accessToken: liff.getAccessToken(),
-      friendFlag: null,
+      friendFlag,
       error: null,
     }
   } catch (error) {

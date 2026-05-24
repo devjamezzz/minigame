@@ -132,6 +132,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
         }
         if (cancelled) return
 
+        if (wallet?.customer.id && !wallet.friendUnlocked && line?.friendFlag === true) {
+          wallet = (await verifyFriendshipApi({
+            customerId: wallet.customer.id,
+            lineAccessToken: line.accessToken,
+            lineUserId: line.profile?.userId,
+            friendFlag: true,
+            tracking,
+          }).catch(() => ({ wallet }))).wallet
+        }
+        if (cancelled) return
+
         setState((prev) => {
           const next = {
             ...prev,
