@@ -85,8 +85,8 @@ export const initializeLine = async (): Promise<LineSession> => {
     await withTimeout(liff.init({ liffId }), 'LIFF init timed out')
     const inClient = liff.isInClient()
     if (!liff.isLoggedIn()) {
-      if (!inClient) {
-        liff.login({ redirectUri: window.location.href })
+      if (inClient) {
+        liff.login()
       }
       return {
         configured: true,

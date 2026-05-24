@@ -109,6 +109,7 @@ export default function AdminPage() {
   }, [submittedKey, reloadToken])
 
   const stats = useMemo(() => {
+    if (summary?.stats) return summary.stats
     const participants = summary?.participants ?? []
     return {
       registered: participants.length,
@@ -116,7 +117,7 @@ export default function AdminPage() {
       lineReady: participants.filter((participant) => participant.friendUnlocked).length,
       redeemed: participants.filter((participant) => participant.mainRewardStatus === 'used').length,
     }
-  }, [summary?.participants])
+  }, [summary?.participants, summary?.stats])
 
   const filteredParticipants = useMemo(() => {
     const normalizedQuery = query.trim().toLowerCase()

@@ -116,6 +116,12 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
     assert.equal(summary.events.draw, 1)
     assert.equal(summary.events.friend, 1)
     assert.equal(summary.events.redeem, 1)
+    assert.deepEqual(summary.stats, {
+      registered: 1,
+      played: 1,
+      lineReady: 1,
+      redeemed: 1,
+    })
     assert.equal(summary.participants.length, 1)
     assert.equal(summary.participants[0].phone, '0812345678')
     assert.equal(summary.participants[0].mainRewardId, firstDraw.reward.id)
@@ -161,6 +167,12 @@ test('API persists registration, reward issue, friendship, redeem, and admin sta
     assert.equal(resetResponse.deleted.events >= 5, true)
     assert.deepEqual(resetResponse.summary.participants, [])
     assert.deepEqual(resetResponse.summary.events, {})
+    assert.deepEqual(resetResponse.summary.stats, {
+      registered: 0,
+      played: 0,
+      lineReady: 0,
+      redeemed: 0,
+    })
     assert.equal(
       resetResponse.summary.rewardTemplates.some((item) => item.id === createdReward.rewardTemplate.id),
       true,

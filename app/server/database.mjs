@@ -114,6 +114,13 @@ const toAdminParticipant = (row) => ({
   friendshipVerifiedAt: row.friendship_verified_at,
 })
 
+const toAdminStats = (row) => ({
+  registered: Number(row?.registered ?? 0),
+  played: Number(row?.played ?? 0),
+  lineReady: Number(row?.line_ready ?? 0),
+  redeemed: Number(row?.redeemed ?? 0),
+})
+
 const migrateSqlite = () => {
   sqliteDb.exec(`
     CREATE TABLE IF NOT EXISTS customers (
@@ -1090,6 +1097,13 @@ export const adminSummary = async () => {
       ORDER BY total DESC
     `
     const templates = (await sql`SELECT * FROM reward_templates ORDER BY weight DESC`).filter(isAdminRewardTemplate)
+    const stats = toAdminStats((await sql`
+      SELECT
+        (SELECT count(*)::int FROM customers) AS registered,
+        (SELECT count(DISTINCT customer_id)::int FROM rewards WHERE type = 'main') AS played,
+        (SELECT count(*)::int FROM friendships) AS line_ready,
+        (SELECT count(DISTINCT customer_id)::int FROM rewards WHERE type = 'main' AND status = 'used') AS redeemed
+    `)[0])
     const participants = await sql`
       SELECT
         c.id,
@@ -1126,6 +1140,7 @@ export const adminSummary = async () => {
     return {
       events,
       sources: sourceRows,
+      stats,
       rewardTemplates: templates.map(toAdminRewardTemplate),
       participants: participants.map(toAdminParticipant),
     }
@@ -1142,6 +1157,13 @@ export const adminSummary = async () => {
     `)
     .all()
   const templates = sqliteDb.prepare('SELECT * FROM reward_templates ORDER BY weight DESC').all().filter(isAdminRewardTemplate)
+  const stats = toAdminStats(sqliteDb.prepare(`
+    SELECT
+      (SELECT count(*) FROM customers) AS registered,
+      (SELECT count(DISTINCT customer_id) FROM rewards WHERE type = 'main') AS played,
+      (SELECT count(*) FROM friendships) AS line_ready,
+      (SELECT count(DISTINCT customer_id) FROM rewards WHERE type = 'main' AND status = 'used') AS redeemed
+  `).get())
   const participants = sqliteDb
     .prepare(`
       SELECT
@@ -1168,6 +1190,7 @@ export const adminSummary = async () => {
   return {
     events,
     sources: sourceRows,
+    stats,
     rewardTemplates: templates.map(toAdminRewardTemplate),
     participants: participants.map(toAdminParticipant),
   }

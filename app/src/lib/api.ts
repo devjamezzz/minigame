@@ -33,6 +33,12 @@ export interface BootstrapResponse {
 export interface AdminSummary {
   events: Record<string, number>
   sources: Array<{ source: string; total: number }>
+  stats: {
+    registered: number
+    played: number
+    lineReady: number
+    redeemed: number
+  }
   rewardTemplates: AdminRewardTemplate[]
   participants: AdminParticipant[]
 }
