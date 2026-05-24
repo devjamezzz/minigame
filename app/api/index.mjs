@@ -34,6 +34,12 @@ export default async function handler(req, res) {
         throw Object.assign(new Error('Admin key is required'), { status: 401 })
       }
     }
+    const requireResetAdmin = (body = {}) => {
+      if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_KEY) {
+        throw Object.assign(new Error('ADMIN_KEY is required before resetting player history'), { status: 503 })
+      }
+      requireAdmin(body)
+    }
 
     if (route === '/health') {
       let database = 'ok'
@@ -106,7 +112,7 @@ export default async function handler(req, res) {
     if (route === '/admin/player-history/reset') {
       if (!ensureMethod(req, res, 'POST')) return
       const body = await readJson(req)
-      requireAdmin(body)
+      requireResetAdmin(body)
       return sendJson(res, 200, await resetPlayerHistory())
     }
 

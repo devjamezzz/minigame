@@ -47,6 +47,13 @@ const requireAdmin = (url, body = {}) => {
   }
 }
 
+const requireResetAdmin = (url, body = {}) => {
+  if (process.env.NODE_ENV === 'production' && !process.env.ADMIN_KEY) {
+    throw Object.assign(new Error('ADMIN_KEY is required before resetting player history'), { status: 503 })
+  }
+  requireAdmin(url, body)
+}
+
 const routeApi = async (req, res, url) => {
   if (url.pathname === '/api/health') {
     let database = 'ok'
@@ -122,7 +129,7 @@ const routeApi = async (req, res, url) => {
   if (url.pathname === '/api/admin/player-history/reset') {
     if (req.method !== 'POST') return methodNotAllowed(res)
     const body = await readBody(req)
-    requireAdmin(url, body)
+    requireResetAdmin(url, body)
     return send(res, 200, await resetPlayerHistory())
   }
 
