@@ -1,5 +1,6 @@
 import { Routes, Route } from 'react-router-dom'
 import { lazy, Suspense } from 'react'
+import { Analytics } from '@vercel/analytics/react'
 import { GameProvider } from './context/GameContext'
 import Layout from './components/Layout'
 import EggLoader from './components/game/EggLoader'
@@ -35,6 +36,7 @@ function App() {
           <Route path="/admin" element={<AdminPage />} />
         </Routes>
       </Suspense>
+      <Analytics />
     </GameProvider>
   )
 }
